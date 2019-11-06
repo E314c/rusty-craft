@@ -76,11 +76,13 @@ fn main() {
 
 
     // -- Declaring a shape to render -- //
+    const VERT_LENGTH: usize = 6;
     let vertices: Vec<f32> = vec![
-        -0.5, -0.5, 0.0,
-         0.5, -0.5, 0.0,
-         0.0,  0.5, 0.0
+        -0.5, -0.5, 0.0,    1.0, 0.0, 0.0,   // A triangle with RGB information
+         0.5, -0.5, 0.0,    0.0, 1.0, 0.0,
+         0.0,  0.5, 0.0,    0.0, 0.0, 1.0
     ];
+
     // Get a Vertex Buffer Object (VBO)
     let mut vbo: gl::types::GLuint = 0;
     unsafe {
@@ -94,6 +96,7 @@ fn main() {
         );
         gl::BindBuffer(gl::ARRAY_BUFFER, 0); // unbind the buffer
     }
+
     // Create a Vertex Array Object (VAO)
     let mut vao: gl::types::GLuint = 0;
     unsafe {
@@ -101,14 +104,24 @@ fn main() {
         gl::BindVertexArray(vao);
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);  // re-bind the vbo into the context
 
+        // Set Attributes
         gl::EnableVertexAttribArray(0); // this is "layout (location = 0)" in vertex shader
         gl::VertexAttribPointer(
             0, // index of the generic vertex attribute ("layout (location = 0)")
             3, // the number of components per generic vertex attribute
             gl::FLOAT, // data type
             gl::FALSE, // disable normalization (int-to-float conversion)
-            (3 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+            (VERT_LENGTH * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
             std::ptr::null() // offset of the first component
+        );
+        gl::EnableVertexAttribArray(1); // this is "layout (location = 1)" in vertex shader
+        gl::VertexAttribPointer(
+            1, // index of the generic vertex attribute ("layout (location = 1)")
+            3, // the number of components per generic vertex attribute
+            gl::FLOAT, // data type
+            gl::FALSE, // disable normalization (int-to-float conversion)
+            (VERT_LENGTH * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+            (VERT_LENGTH/2 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
         );
         // Unbind the objects
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
