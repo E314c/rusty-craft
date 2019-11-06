@@ -1,0 +1,14 @@
+# Rust ignores
+/target
+**/*.rs.bk
+/*.dll
+
+# SDL libs for windows
+# If you need these, see https://github.com/Rust-SDL2/rust-sdl2#windows-with-build-script
+/gnu-mingw
+/msvc
+
+# Project notes
+info/
+# TODO: enable in seperate branch
+blog/

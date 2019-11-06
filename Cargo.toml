@@ -1,0 +1,12 @@
+[package]
+name = "rusty-craft"
+version = "0.1.0"
+authors = ["E314c <e3.14c.rael@gmail.com>"]
+edition = "2018"
+build="./scripts/build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sdl2 = "0.32.2"
+gl = "0.14.0"
