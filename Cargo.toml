@@ -10,3 +10,7 @@ build="./scripts/build.rs"
 [dependencies]
 sdl2 = "0.32.2"
 gl = "0.14.0"
+image = "0.22.3"
+
+[build-dependencies]
+walkdir = "2.1"

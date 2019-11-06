@@ -2,6 +2,7 @@ extern crate gl;
 
 use std::ffi::{CString, CStr};
 use crate::ffi_utils;
+use crate::resources::Resources;
 
 pub struct Shader {
     id: gl::types::GLuint,
@@ -25,6 +26,29 @@ impl Shader {
         Shader::from_source(source, gl::FRAGMENT_SHADER)
     }
 
+    // Load a shader from a resource
+    pub fn from_resource(res: &Resources, name: &str) -> Result<Shader, String> {
+        // Define possible types from extensions
+        const POSSIBLE_EXT: [(&str, gl::types::GLenum); 2] = [
+            (".vert", gl::VERTEX_SHADER),
+            (".frag", gl::FRAGMENT_SHADER),
+        ];
+
+        // Determine shader type
+        let shader_type = POSSIBLE_EXT.iter()
+            .find(|&&(file_extension, _)| {
+                name.ends_with(file_extension)
+            })
+            .map(|&(_, kind)| kind)
+            .ok_or_else(|| format!("Can not determine shader type for resource {}", name))?;
+
+        let source = res.load_cstring(name)
+            .map_err(|e| format!("Error loading resource {}: {:?}", name, e))?;
+
+        Shader::from_source(&source, shader_type)
+    }
+
+    // Getter for own ID
     pub fn id(&self) -> gl::types::GLuint {
         self.id
     }

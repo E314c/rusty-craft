@@ -1,6 +1,8 @@
 use std::env;
 use std::path::PathBuf;
 
+mod copy_assets;
+
 fn main() {
 
     // -- Build Script for SDL.dll from -- //
@@ -45,4 +47,7 @@ fn main() {
         }
     }
     //-- End of SDL build script --//
+
+    // -- Copy assets to target -- //
+    copy_assets::copy_assets()
 }
