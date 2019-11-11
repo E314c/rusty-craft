@@ -8,6 +8,7 @@ extern crate gl;
 pub mod resources;
 pub mod render;
 pub mod ffi_utils;
+pub mod obj;
 
 // The SDL needs u32, but gl viewport needs i32
 // const SCREEN_WIDTH:u32 = 800;
@@ -168,9 +169,9 @@ fn main() {
             (6 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
         );
         // Unbind the objects
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0); // EBO must be unbound after VAO, otherwise it is unbound from VAO
     }
     // Loop state variables
     let mut last_tick = unsafe{sdl2_sys::SDL_GetTicks()};
@@ -220,10 +221,13 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
             // Draw our triangle:
             gl::BindVertexArray(vao);
-            gl::DrawArrays(
-                gl::TRIANGLES, // mode
-                0, // starting index in the enabled arrays
-                3 // number of indices to be rendered
+            
+            // This is the EBO rendering method:
+            gl::DrawElements(
+                gl::TRIANGLES,  // render method
+                6 as gl::types::GLsizei,  // Count of indexes to render
+                gl::UNSIGNED_INT,    // Type in EBO
+                std::ptr::null(),  // Offset in the EBO
             );
         }
         
