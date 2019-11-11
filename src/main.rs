@@ -1,6 +1,8 @@
 use std::path::{Path};
+use std::ffi::{CString};
 
 extern crate sdl2;
+extern crate sdl2_sys;
 extern crate gl;
 
 pub mod resources;
@@ -51,10 +53,11 @@ fn main() {
     // Load the video subsystem
     let _gl = gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void); // TODO: Use this variable?
     
-    // Designate the "clear" colour
-    unsafe { // unsafe because ClearColor is marked as unsafe.
+    // Designate the "clear" colour and viewport
+    unsafe {
         gl::Viewport(0, 0, SCREEN_WIDTH!(), SCREEN_HEIGHT!()); // set viewport
         gl::ClearColor(0.5, 0.5, 0.7, 1.0); // Set the 'clear' colour to light blue
+        gl::Clear(gl::COLOR_BUFFER_BIT);
     }
 
     // Get a reference the event stream
@@ -67,6 +70,11 @@ fn main() {
     let frag_shader = render::shader::Shader::from_resource(&resources, "shaders/triangle.frag").unwrap();
     // -- -- //
 
+    // -- Load Texture -- //
+    // TODO: Maybe texture shouldn't automatically bind itself?
+    let texture = render::texture::Texture::from_resource(&resources, "textures/test_16.png").unwrap();
+
+    // declare main sharder program
     let shader_program = render::program::Program::from_shaders(
         &[vert_shader, frag_shader]
     ).unwrap();
@@ -74,13 +82,15 @@ fn main() {
     // Set the program as the main shader program
     shader_program.set();
 
-
     // -- Declaring a shape to render -- //
-    const VERT_LENGTH: usize = 6;
+    const VERT_LENGTH: usize = 8;
     let vertices: Vec<f32> = vec![
-        -0.5, -0.5, 0.0,    1.0, 0.0, 0.0,   // A triangle with RGB information
-         0.5, -0.5, 0.0,    0.0, 1.0, 0.0,
-         0.0,  0.5, 0.0,    0.0, 0.0, 1.0
+        // Declared anti-clockwise from bottom right
+        // Pos                 Colour           text position
+        -0.5, -0.5, 0.0,    1.0, 0.0, 0.0,      0.0, 0.0, // A triangle with RGB information
+         0.5, -0.5, 0.0,    0.0, 1.0, 0.0,      1.0, 0.0,
+         0.5,  0.5, 0.0,    0.0, 0.0, 1.0,      1.0, 1.0,
+        -0.5,  0.5, 0.0,    0.0, 0.0, 1.0,      0.0, 1.0
     ];
 
     // Get a Vertex Buffer Object (VBO)
@@ -97,39 +107,96 @@ fn main() {
         gl::BindBuffer(gl::ARRAY_BUFFER, 0); // unbind the buffer
     }
 
+    // Create an Element Buffer Object (to re use vertex information for a square)
+    let indexes: Vec<u32> = vec![
+        0, 1, 2,    // First triangle
+        2, 3, 0,    // Second triangle
+    ];
+
+    let mut ebo: gl::types::GLuint = 0;
+    unsafe {
+        gl::GenBuffers(1, &mut ebo);    // Create 1 buffer.
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);  // Bind as an ELEMENT_ARRAY_BUFFER
+        gl::BufferData(
+            gl::ELEMENT_ARRAY_BUFFER, // target
+            (indexes.len() * std::mem::size_of::<u32>()) as gl::types::GLsizeiptr, // size of data in bytes
+            indexes.as_ptr() as *const gl::types::GLvoid, // pointer to data
+            gl::STATIC_DRAW, // usage hint: Data rarely changes, used for drawing
+        );
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0); // unbind the buffer
+    }
+
+
     // Create a Vertex Array Object (VAO)
     let mut vao: gl::types::GLuint = 0;
     unsafe {
         gl::GenVertexArrays(1, &mut vao);
         gl::BindVertexArray(vao);
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);  // re-bind the vbo into the context
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);  // re-bind the ebo into the context
 
-        // Set Attributes
+        // -- Set Attributes -- //
+        let stride = (VERT_LENGTH * std::mem::size_of::<f32>()) as gl::types::GLint;
+        // Position info:
         gl::EnableVertexAttribArray(0); // this is "layout (location = 0)" in vertex shader
         gl::VertexAttribPointer(
             0, // index of the generic vertex attribute ("layout (location = 0)")
             3, // the number of components per generic vertex attribute
             gl::FLOAT, // data type
             gl::FALSE, // disable normalization (int-to-float conversion)
-            (VERT_LENGTH * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+            stride, // stride (byte offset between consecutive attributes)
             std::ptr::null() // offset of the first component
         );
+        // Base colour info:
         gl::EnableVertexAttribArray(1); // this is "layout (location = 1)" in vertex shader
         gl::VertexAttribPointer(
             1, // index of the generic vertex attribute ("layout (location = 1)")
             3, // the number of components per generic vertex attribute
             gl::FLOAT, // data type
             gl::FALSE, // disable normalization (int-to-float conversion)
-            (VERT_LENGTH * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-            (VERT_LENGTH/2 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
+            stride, // stride (byte offset between consecutive attributes)
+            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
+        );
+        // Texture info:
+        gl::EnableVertexAttribArray(2); // this is "layout (location = 2)" in vertex shader
+        gl::VertexAttribPointer(
+            2, // index of the generic vertex attribute ("layout (location = 2)")
+            2, // the number of components per generic vertex attribute
+            gl::FLOAT, // data type
+            gl::FALSE, // disable normalization (int-to-float conversion)
+            stride, // stride (byte offset between consecutive attributes)
+            (6 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
         );
         // Unbind the objects
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
-
+    // Loop state variables
+    let mut last_tick = unsafe{sdl2_sys::SDL_GetTicks()};
+    let mut u_colour_angle : u32 = 0;
     // Main loop
     'main: loop {
+        // Calculate current FPS
+        let cur_tick = unsafe{sdl2_sys::SDL_GetTicks()};
+        let tick_diff = cur_tick - last_tick;
+        let fps : f32 = 1000.0 / ( tick_diff as f32);
+        // println!("fsp {}", fps);    // TODO: Write to corner of screen?
+        last_tick = cur_tick;
+        
+        // Modify a `uniform` variable to affect triangle colour
+        const LOOP_TIME :u32 = 10000;
+        u_colour_angle = (u_colour_angle + tick_diff) % LOOP_TIME;
+        // Normalise around 10000 -> 2*pi.
+        unsafe{
+            let radius_uniform_location = gl::GetUniformLocation(shader_program.id(), CString::new("timed_colour").unwrap().as_ptr() );
+            gl::Uniform1f(
+                radius_uniform_location, //GLint, 
+                (((u_colour_angle as f32)*2.0*std::f32::consts::PI)/ (LOOP_TIME as f32)) as gl::types::GLfloat
+            );
+        }
+
+
         // Handle events:
         for event in event_pump.poll_iter() {
             use sdl2::event::Event; // Shorten the current namespace

@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::io::{self, Read};
 use std::ffi;
+use image::{self, png};
 
 // Custom errors for this module
 #[derive(Debug)]
@@ -14,6 +15,7 @@ pub enum Error {
     Io(io::Error),
     FailedToGetExePath,
     FileContainsNullByte,
+    ImageDecodeFailed
 }
 
 // Create a caster for io:Error to our Error
@@ -63,6 +65,20 @@ impl Resources {
         }
 
         Ok(unsafe { ffi::CString::from_vec_unchecked(buffer) })
+    }
+
+
+    pub fn load_image(&self, image_name : &str) -> Result<png::PNGDecoder<fs::File>, Error> {
+        // Image file handle 
+        let mut file = fs::File::open(
+            resource_name_to_path(&self.root_path, image_name)
+        )?;
+
+        // Get a (png) decoder
+        png::PNGDecoder::new(file).or_else(|e| {
+            println!();
+            Err(Error::ImageDecodeFailed)
+        })
     }
 }
 
