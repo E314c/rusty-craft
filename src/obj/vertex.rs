@@ -23,6 +23,15 @@ impl Coords3D {
             z : vec[2],
         })
     }
+    pub fn new(x:f32,y:f32,z:f32) -> Coords3D {
+        Coords3D{x,y,z}
+    }
+}
+
+impl From<(f32, f32, f32)> for Coords3D {
+    fn from(other: (f32, f32, f32)) -> Self {
+        Coords3D::new(other.0, other.1, other.2)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -41,6 +50,14 @@ impl Coords2D {
             x : vec[0],
             y : vec[1],
         })
+    }
+}
+impl From<(f32, f32)> for Coords2D {
+    fn from(other: (f32, f32)) -> Self {
+        Coords2D {
+            x: other.0,
+            y: other.1
+        }
     }
 }
 
@@ -88,6 +105,7 @@ impl From<(f32, f32, f32)> for Colour {
         Colour::new(other.0, other.1, other.2, 1.0)
     }
 }
+
 // -- Vertex -- //
 pub trait Vertex {
     fn to_vec(&self) -> Vec<f32>;
@@ -100,10 +118,18 @@ pub trait Vertex {
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 pub struct VertexP {
-    position : Coords3D,
+    pub position : Coords3D,
 }
 
+use std::ffi;
+
 impl VertexP {
+    pub fn from_coords(position: Coords3D) -> VertexP {
+        VertexP {
+            position
+        }
+    }
+
     // -- Upgraders -- //
     pub fn add_color(self, colour: Colour) -> VertexPC {
         VertexPC {
@@ -170,8 +196,8 @@ impl Vertex for VertexP {
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 pub struct VertexPC {
-    position : Coords3D,
-    colour: Colour,
+    pub position : Coords3D,
+    pub colour: Colour,
 }
 
 impl VertexPC {
@@ -252,8 +278,8 @@ impl Vertex for VertexPC {
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 pub struct VertexPT {
-    position : Coords3D,
-    texture_coords: Coords2D,
+    pub position : Coords3D,
+    pub texture_coords: Coords2D,
 }
 
 impl VertexPT {
@@ -333,9 +359,9 @@ impl Vertex for VertexPT {
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 pub struct VertexPCT {
-    position : Coords3D,
-    colour: Colour,
-    texture_coords: Coords2D,
+    pub position : Coords3D,
+    pub colour: Colour,
+    pub texture_coords: Coords2D,
 }
 
 // TODO: Implement
