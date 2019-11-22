@@ -7,9 +7,9 @@ pub enum Error {
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 pub struct Coords3D {
-    x : f32,
-    y : f32,
-    z : f32,
+    pub x : f32,
+    pub y : f32,
+    pub z : f32,
 }
 impl Coords3D {
     pub fn from_vec(vec: Vec<f32>) -> Result<Coords3D, Error> {
@@ -37,8 +37,8 @@ impl From<(f32, f32, f32)> for Coords3D {
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 pub struct Coords2D {
-    x : f32,
-    y : f32,
+    pub x : f32,
+    pub y : f32,
 }
 impl Coords2D {
     pub fn from_vec(vec: Vec<f32>) -> Result<Coords2D, Error> {
@@ -66,7 +66,10 @@ impl From<(f32, f32)> for Coords2D {
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 pub struct Colour {
-    r: f32, g:f32, b: f32, a:f32
+    pub r: f32, 
+    pub g:f32, 
+    pub b: f32, 
+    pub a:f32
 }
 impl Colour {
     pub fn new(r : f32, g : f32, b : f32, a : f32) -> Colour {
@@ -326,6 +329,7 @@ impl Vertex for VertexPT {
             
             // -- Set Attributes -- //
             let stride = (std::mem::size_of::<Coords3D>() + std::mem::size_of::<Coords2D>()) as gl::types::GLint;
+            println!("Configuring vao for VertexPT\nStride is {:?}", stride);
             // Position info:
             gl::EnableVertexAttribArray(0); // this is "layout (location = 0)" in vertex shader
             gl::VertexAttribPointer(

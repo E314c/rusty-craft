@@ -10,6 +10,9 @@ pub mod render;
 pub mod ffi_utils;
 pub mod obj;
 
+use crate::obj::vertex::{Vertex, VertexP, VertexPT, Coords3D};
+use crate::obj::shape::{Shape};
+
 // The SDL needs u32, but gl viewport needs i32
 // const SCREEN_WIDTH:u32 = 800;
 // const SCREEN_HEIGHT:u32 = 450;
@@ -28,7 +31,7 @@ macro_rules! SCREEN_WIDTH {
     };
 }
 
-fn main() {    
+fn main() {
     // Creating SDL instance
     let sdl = sdl2::init().unwrap();
     
@@ -83,96 +86,35 @@ fn main() {
     // Set the program as the main shader program
     shader_program.set();
 
-    // -- Declaring a shape to render -- //
-    const VERT_LENGTH: usize = 8;
-    let vertices: Vec<f32> = vec![
-        // Declared anti-clockwise from bottom right
-        // Pos                 Colour           text position
-        -0.5, -0.5, 0.0,    1.0, 0.0, 0.0,      0.0, 0.0, // A triangle with RGB information
-         0.5, -0.5, 0.0,    0.0, 1.0, 0.0,      1.0, 0.0,
-         0.5,  0.5, 0.0,    0.0, 0.0, 1.0,      1.0, 1.0,
-        -0.5,  0.5, 0.0,    0.0, 0.0, 1.0,      0.0, 1.0
-    ];
+    // New shape declaration: 
+    let mut square = Shape::from_vertices_and_triangle(
+        vec![
+            VertexPT {
+                position: (-0.5, -0.5, 0.0).into(),
+                texture_coords : (0.0,0.0).into(),
+            },
+            VertexPT {
+                position: (0.5, -0.5, 0.0).into(),
+                texture_coords : (1.0,0.0).into(),
+            },
+            VertexPT {
+                position: (0.5, 0.5, 0.0).into(),
+                texture_coords : (1.0,1.0).into(),
+            },
+            VertexPT {
+                position: (-0.5, 0.5, 0.0).into(),
+                texture_coords : (0.0,1.0).into(),
+            },
+        ], 
+        vec![
+            (0, 1, 2),    // First triangle
+            (2, 3, 0),    // Second triangle
+        ]
+    );
 
-    // Get a Vertex Buffer Object (VBO)
-    let mut vbo: gl::types::GLuint = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut vbo);    // Create 1 buffer.
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);  // Bind as an ARRAY_BUFFER
-        gl::BufferData(
-            gl::ARRAY_BUFFER, // target
-            (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr, // size of data in bytes
-            vertices.as_ptr() as *const gl::types::GLvoid, // pointer to data
-            gl::STATIC_DRAW, // usage hint: Data rarely changes, used for drawing
-        );
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0); // unbind the buffer
-    }
+    // Setup it's VAO and such
+    square.setup();
 
-    // Create an Element Buffer Object (to re use vertex information for a square)
-    let indexes: Vec<u32> = vec![
-        0, 1, 2,    // First triangle
-        2, 3, 0,    // Second triangle
-    ];
-
-    let mut ebo: gl::types::GLuint = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut ebo);    // Create 1 buffer.
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);  // Bind as an ELEMENT_ARRAY_BUFFER
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER, // target
-            (indexes.len() * std::mem::size_of::<u32>()) as gl::types::GLsizeiptr, // size of data in bytes
-            indexes.as_ptr() as *const gl::types::GLvoid, // pointer to data
-            gl::STATIC_DRAW, // usage hint: Data rarely changes, used for drawing
-        );
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0); // unbind the buffer
-    }
-
-
-    // Create a Vertex Array Object (VAO)
-    let mut vao: gl::types::GLuint = 0;
-    unsafe {
-        gl::GenVertexArrays(1, &mut vao);
-        gl::BindVertexArray(vao);
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);  // re-bind the vbo into the context
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);  // re-bind the ebo into the context
-
-        // -- Set Attributes -- //
-        let stride = (VERT_LENGTH * std::mem::size_of::<f32>()) as gl::types::GLint;
-        // Position info:
-        gl::EnableVertexAttribArray(0); // this is "layout (location = 0)" in vertex shader
-        gl::VertexAttribPointer(
-            0, // index of the generic vertex attribute ("layout (location = 0)")
-            3, // the number of components per generic vertex attribute
-            gl::FLOAT, // data type
-            gl::FALSE, // disable normalization (int-to-float conversion)
-            stride, // stride (byte offset between consecutive attributes)
-            std::ptr::null() // offset of the first component
-        );
-        // Base colour info:
-        gl::EnableVertexAttribArray(1); // this is "layout (location = 1)" in vertex shader
-        gl::VertexAttribPointer(
-            1, // index of the generic vertex attribute ("layout (location = 1)")
-            3, // the number of components per generic vertex attribute
-            gl::FLOAT, // data type
-            gl::FALSE, // disable normalization (int-to-float conversion)
-            stride, // stride (byte offset between consecutive attributes)
-            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
-        );
-        // Texture info:
-        gl::EnableVertexAttribArray(2); // this is "layout (location = 2)" in vertex shader
-        gl::VertexAttribPointer(
-            2, // index of the generic vertex attribute ("layout (location = 2)")
-            2, // the number of components per generic vertex attribute
-            gl::FLOAT, // data type
-            gl::FALSE, // disable normalization (int-to-float conversion)
-            stride, // stride (byte offset between consecutive attributes)
-            (6 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
-        );
-        // Unbind the objects
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-        gl::BindVertexArray(0);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0); // EBO must be unbound after VAO, otherwise it is unbound from VAO
-    }
     // Loop state variables
     let mut last_tick = unsafe{sdl2_sys::SDL_GetTicks()};
     let mut u_colour_angle : u32 = 0;
@@ -219,16 +161,8 @@ fn main() {
         // TODO: render something
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
-            // Draw our triangle:
-            gl::BindVertexArray(vao);
-            
-            // This is the EBO rendering method:
-            gl::DrawElements(
-                gl::TRIANGLES,  // render method
-                6 as gl::types::GLsizei,  // Count of indexes to render
-                gl::UNSIGNED_INT,    // Type in EBO
-                std::ptr::null(),  // Offset in the EBO
-            );
+            // Draw our shape:
+            square.draw();
         }
         
         window.gl_swap_window();

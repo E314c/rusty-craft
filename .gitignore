@@ -10,5 +10,6 @@
 
 # Project notes
 info/
+tmp/
 # TODO: enable in seperate branch
 blog/
