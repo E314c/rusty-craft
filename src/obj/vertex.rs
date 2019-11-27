@@ -124,8 +124,6 @@ pub struct VertexP {
     pub position : Coords3D,
 }
 
-use std::ffi;
-
 impl VertexP {
     pub fn from_coords(position: Coords3D) -> VertexP {
         VertexP {
@@ -329,7 +327,7 @@ impl Vertex for VertexPT {
             
             // -- Set Attributes -- //
             let stride = (std::mem::size_of::<Coords3D>() + std::mem::size_of::<Coords2D>()) as gl::types::GLint;
-            println!("Configuring vao for VertexPT\nStride is {:?}", stride);
+
             // Position info:
             gl::EnableVertexAttribArray(0); // this is "layout (location = 0)" in vertex shader
             gl::VertexAttribPointer(
@@ -368,7 +366,6 @@ pub struct VertexPCT {
     pub texture_coords: Coords2D,
 }
 
-// TODO: Implement
 impl Vertex for VertexPCT {
     // -- Getter -- //
     fn to_vec(&self) -> Vec<f32> {

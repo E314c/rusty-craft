@@ -1,14 +1,8 @@
-use crate::obj::vertex;
+use crate::obj::vertex::{self, Vertex, Coords3D};
 
-pub struct Shape<T : vertex::Vertex> {
+pub struct Shape<T : Vertex> {
     verts: Vec<T>,
     triangles: Vec<(u32,u32,u32)>,   // Triangles from the indexes of the arrays in `verts` (sets of 3 indexes)
-
-    // Local -> world space transformation information
-    rotation: vertex::Coords3D,
-    translation: vertex::Coords3D,
-    scale: f32,
-    
 
     // GL IDs owned by this shape
     vbo: gl::types::GLuint,
@@ -17,15 +11,12 @@ pub struct Shape<T : vertex::Vertex> {
     vao: gl::types::GLuint,
 }
 
-impl <T:vertex::Vertex> Shape<T> {
+impl <T:Vertex> Shape<T> {
     
     pub fn from_vertices_and_triangle(verts: Vec<T>, triangles: Vec<(u32,u32,u32)>) -> Shape<T> {
         Shape {
             verts,
             triangles,
-            rotation: (0.0, 0.0, 0.0).into(),
-            translation: (0.0, 0.0, 0.0).into(),
-            scale: 0.0,
             ebo: 0,
             vbo:0,
             vao:0,
@@ -122,3 +113,46 @@ impl <T:vertex::Vertex> Shape<T> {
 //         }
 //     }
 // }
+
+/**
+ * An Object is a specific instance of a given shape: It will contain a reference to the original shape, 
+ * but will have it's own local->world space transformations.
+ */
+use std::rc::Rc;
+use std::ffi::{CString};
+
+pub struct Object<T:Vertex> {
+    shape: Rc<Shape<T>>,
+
+    // Local -> world space transformation information
+    rotation: Coords3D,
+    translation: Coords3D,
+    scale: Coords3D,
+}
+
+impl <T:Vertex> Object<T> { 
+    pub fn new(shape: Rc<Shape<T>>) -> Object<T> {
+        Object {
+            shape,
+            rotation: (0.0, 0.0, 0.0).into(),
+            translation: (0.0, 0.0, 0.0).into(),
+            scale: (0.0, 0.0, 0.0).into(),
+        }
+    }
+
+    pub fn draw(&self, shader_program_id : gl::types::GLuint) {
+        // Setup up the transformations for openGL
+        unsafe {
+            let trans_x_location = gl::GetUniformLocation(shader_program_id, CString::new("trans_x").unwrap().as_ptr() );
+            gl::UniformMatrix3fv(
+                trans_x_location,
+                3,
+                gl::FALSE,
+                &self.translation.x // It's tightly packed, so give address of first location
+            );
+        }
+
+        // draw
+        self.shape.draw();
+    }
+}
