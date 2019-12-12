@@ -9,6 +9,10 @@ out VERT_SHAD_OUTPUT {
 
 uniform float timed_colour; // FOR DEBUGGING ROTATION
 
+uniform vec3 scale;
+uniform vec3 translation;
+uniform vec3 rotation;
+
 vec4 multiplyQuat(vec4 a, vec4 b) {
 
     /**
@@ -83,16 +87,60 @@ vec3 rotate(vec3 coord, vec3 axis, float angle) {
     );
 }
 
-// -- MAIN -- //
+// Apply the given perspective to the given coordinates
+vec3 applyPerspective(vec3 coord, float FarDistance, float NearDistance, vec2 NearScale, vec2 FarScale ) {
+    float delta = FarDistance - NearDistance;
+    if(delta == 0) return vec3(-2,-2,-2);   // Error, draw out of bounds
 
+    vec3 newCoords;
+    // calculate Z axis into range first
+    newCoords[2] =  ((-2 * coord[2])/delta) + 1 + ((2 * NearDistance)/delta);
+
+    // Based on Z distance, use appropriate scaling
+    float z_norm = (newCoords[2]+1)/2;
+
+    newCoords[0] = coord[0] * (NearScale[0] + (z_norm * (FarScale[0] - NearScale[0])));
+    newCoords[1] = coord[1] * (NearScale[1] + (z_norm * (FarScale[1] - NearScale[1])));
+    return newCoords;
+}
+
+// Rotates in the order X->Y->Z
+vec3 applyRotation(vec3 coord, vec3 rotations) {
+    return rotate(
+        rotate(
+            rotate(
+                coord,
+                vec3(1,0,0),
+                rotations[0]
+            ),
+            vec3(0,1,0),
+            rotations[1]
+        ),
+        vec3(0,0,1),
+        rotations[2]
+    );
+}
+
+// -- MAIN -- //
 void main()
 {
     // Fixed position
     // gl_Position = vec4(Position, 1.0);
     
-    // DEBUG: Rotating the shape around the x-axis
+    // // DEBUG: Rotating the shape around the x-axis
     vec3 pos = rotate(Position, vec3(1,0,0), timed_colour);
-    gl_Position = vec4(pos, 1.0);
+    // Cheap perspective: (fucks up the texture though)
+    // pos[0] = pos[0] * (1-pos[2]);
+    // pos[1] = pos[1] * (1-pos[2]);    // This is performed by setting w = 1-pos[2];
+    // gl_Position = vec4(pos, 1.0);
+    gl_Position = vec4(pos , 1-pos[2]);
+
+
+    // // From global transforms:
+    // vec3 pos = applyRotation(Position, rotation);  // TEST: X axis rotation
     
+    // // gl_Position = vec4(pos, 1.0);
+    // gl_Position = vec4(applyPerspective(pos, 1.0, -1.0, vec2(0.5,0.5), vec2(2,2)), 1.0);
+
     OUT.TexCoord = TexCoord;
 }

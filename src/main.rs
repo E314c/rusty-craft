@@ -1,5 +1,6 @@
 use std::path::{Path};
 use std::ffi::{CString};
+use std::rc::Rc;
 
 extern crate sdl2;
 extern crate sdl2_sys;
@@ -115,6 +116,12 @@ fn main() {
     // Setup it's VAO and such
     square.setup();
 
+    // Create global square reference:
+    let global_square = Rc::new(square);
+
+    // Get a world version of the square:
+    let mut in_world_square = obj::shape::Object::new(&global_square);
+
     // Loop state variables
     let mut last_tick = unsafe{sdl2_sys::SDL_GetTicks()};
     let mut u_colour_angle : u32 = 0;
@@ -131,11 +138,12 @@ fn main() {
         const LOOP_TIME :u32 = 10000;
         u_colour_angle = (u_colour_angle + tick_diff) % LOOP_TIME;
         // Normalise around 10000 -> 2*pi.
+        let u_colour_angle_rad = ((u_colour_angle as f32) * 2.0 * std::f32::consts::PI)/ (LOOP_TIME as f32);
         unsafe{
             let radius_uniform_location = gl::GetUniformLocation(shader_program.id(), CString::new("timed_colour").unwrap().as_ptr() );
             gl::Uniform1f(
                 radius_uniform_location, //GLint, 
-                (((u_colour_angle as f32)*2.0*std::f32::consts::PI)/ (LOOP_TIME as f32)) as gl::types::GLfloat
+                u_colour_angle_rad as gl::types::GLfloat
             );
         }
 
@@ -161,8 +169,11 @@ fn main() {
         // TODO: render something
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
+            in_world_square.rotation.x = u_colour_angle_rad;
+            // in_world_square.rotation.y = u_colour_angle_rad + 1.6;
+
             // Draw our shape:
-            square.draw();
+            in_world_square.draw(shader_program.id());
         }
         
         window.gl_swap_window();

@@ -125,15 +125,15 @@ pub struct Object<T:Vertex> {
     shape: Rc<Shape<T>>,
 
     // Local -> world space transformation information
-    rotation: Coords3D,
-    translation: Coords3D,
-    scale: Coords3D,
+    pub rotation: Coords3D,
+    pub translation: Coords3D,
+    pub scale: Coords3D,
 }
 
 impl <T:Vertex> Object<T> { 
-    pub fn new(shape: Rc<Shape<T>>) -> Object<T> {
+    pub fn new(shape: &Rc<Shape<T>>) -> Object<T> {
         Object {
-            shape,
+            shape: Rc::clone(shape),
             rotation: (0.0, 0.0, 0.0).into(),
             translation: (0.0, 0.0, 0.0).into(),
             scale: (0.0, 0.0, 0.0).into(),
@@ -143,12 +143,26 @@ impl <T:Vertex> Object<T> {
     pub fn draw(&self, shader_program_id : gl::types::GLuint) {
         // Setup up the transformations for openGL
         unsafe {
-            let trans_x_location = gl::GetUniformLocation(shader_program_id, CString::new("trans_x").unwrap().as_ptr() );
-            gl::UniformMatrix3fv(
-                trans_x_location,
-                3,
-                gl::FALSE,
-                &self.translation.x // It's tightly packed, so give address of first location
+            let translation_location = gl::GetUniformLocation(shader_program_id, CString::new("translation").unwrap().as_ptr());
+            gl::Uniform3f(
+                translation_location,
+                self.translation.x,
+                self.translation.y,
+                self.translation.z
+            );
+            let rotation_location = gl::GetUniformLocation(shader_program_id, CString::new("rotation").unwrap().as_ptr());
+            gl::Uniform3f(
+                rotation_location,
+                self.rotation.x,
+                self.rotation.y,
+                self.rotation.z
+            );
+            let scale_location = gl::GetUniformLocation(shader_program_id, CString::new("scale").unwrap().as_ptr());
+            gl::Uniform3f(
+                scale_location,
+                self.scale.x,
+                self.scale.y,
+                self.scale.z
             );
         }
 
