@@ -170,7 +170,7 @@ fn main() {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
             in_world_square.rotation.x = u_colour_angle_rad;
-            // in_world_square.rotation.y = u_colour_angle_rad + 1.6;
+            in_world_square.rotation.y = u_colour_angle_rad + 1.6;
 
             // Draw our shape:
             in_world_square.draw(shader_program.id());

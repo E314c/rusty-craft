@@ -88,19 +88,20 @@ vec3 rotate(vec3 coord, vec3 axis, float angle) {
 }
 
 // Apply the given perspective to the given coordinates
-vec3 applyPerspective(vec3 coord, float FarDistance, float NearDistance, vec2 NearScale, vec2 FarScale ) {
-    float delta = FarDistance - NearDistance;
-    if(delta == 0) return vec3(-2,-2,-2);   // Error, draw out of bounds
+vec4 applyPerspective(vec3 coord, float fov, float near, float far, float aspectRatio) {
+    if(far == near) return vec4(-2,-2,-2, 2);   // Error, draw out of bounds
+    
+    float arcTanFov = atan(fov/2);
 
-    vec3 newCoords;
-    // calculate Z axis into range first
-    newCoords[2] =  ((-2 * coord[2])/delta) + 1 + ((2 * NearDistance)/delta);
 
-    // Based on Z distance, use appropriate scaling
-    float z_norm = (newCoords[2]+1)/2;
+    vec4 newCoords;
 
-    newCoords[0] = coord[0] * (NearScale[0] + (z_norm * (FarScale[0] - NearScale[0])));
-    newCoords[1] = coord[1] * (NearScale[1] + (z_norm * (FarScale[1] - NearScale[1])));
+    newCoords[3] = (arcTanFov * near * far)/(coord[2] - near);
+
+    newCoords[0] = coord[0];
+    newCoords[1] = coord[1] * aspectRatio;
+    newCoords[2] = ((far + near - (2 * coord[2]))/(far - near)) * ((arcTanFov * near * far)/(coord[2] - near));
+
     return newCoords;
 }
 
@@ -124,23 +125,10 @@ vec3 applyRotation(vec3 coord, vec3 rotations) {
 // -- MAIN -- //
 void main()
 {
-    // Fixed position
-    // gl_Position = vec4(Position, 1.0);
     
-    // // DEBUG: Rotating the shape around the x-axis
-    vec3 pos = rotate(Position, vec3(1,0,0), timed_colour);
-    // Cheap perspective: (fucks up the texture though)
-    // pos[0] = pos[0] * (1-pos[2]);
-    // pos[1] = pos[1] * (1-pos[2]);    // This is performed by setting w = 1-pos[2];
-    // gl_Position = vec4(pos, 1.0);
-    gl_Position = vec4(pos , 1-pos[2]);
-
-
     // // From global transforms:
-    // vec3 pos = applyRotation(Position, rotation);  // TEST: X axis rotation
-    
-    // // gl_Position = vec4(pos, 1.0);
-    // gl_Position = vec4(applyPerspective(pos, 1.0, -1.0, vec2(0.5,0.5), vec2(2,2)), 1.0);
+    vec3 pos = applyRotation(Position, rotation); 
+    gl_Position = applyPerspective(pos, asin(1),2.0, -2.0, 8.0/4.5); // TODO: Move to uniform values.
 
     OUT.TexCoord = TexCoord;
 }
